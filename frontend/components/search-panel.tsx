@@ -65,7 +65,7 @@ export function SearchPanel() {
   const [result, setResult] = useState<ProductInsights | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const parsedSummary = result ? parseSummary(result.summary) : null;
+  const parsedSummary = result?.summary ? parseSummary(result.summary) : null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -77,7 +77,7 @@ export function SearchPanel() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/reviews', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
