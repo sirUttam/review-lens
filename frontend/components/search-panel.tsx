@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { ReviewCard } from './review-card';
-import type { ProductInsights } from '../lib/types';
+import type { ProductInsights, ReviewItem } from '../lib/types';
 
 const modes: Array<{ id: 'text' | 'url' | 'image'; label: string; disabled?: boolean }> = [
   { id: 'text', label: 'Text' },
@@ -59,6 +59,34 @@ function parseSummary(text: string) {
   };
 }
 
+function normalizeProductInsights(
+  data: unknown,
+  fallbackProduct: string,
+  fallbackInputType: 'text' | 'url' | 'image',
+): ProductInsights {
+  const parsed = (data as Partial<ProductInsights>) || {};
+
+  return {
+    product: typeof parsed.product === 'string' ? parsed.product : fallbackProduct,
+    total_posts: typeof parsed.total_posts === 'number' ? parsed.total_posts : 0,
+    positive_percent: typeof parsed.positive_percent === 'number' ? parsed.positive_percent : 0,
+    negative_percent: typeof parsed.negative_percent === 'number' ? parsed.negative_percent : 0,
+    neutral_percent: typeof parsed.neutral_percent === 'number' ? parsed.neutral_percent : 0,
+    top_positive_reviews: Array.isArray(parsed.top_positive_reviews)
+      ? parsed.top_positive_reviews.filter(Boolean) as ReviewItem[]
+      : [],
+    top_negative_reviews: Array.isArray(parsed.top_negative_reviews)
+      ? parsed.top_negative_reviews.filter(Boolean) as ReviewItem[]
+      : [],
+    summary: typeof parsed.summary === 'string' ? parsed.summary : '',
+    input_type:
+      parsed.input_type === 'url' || parsed.input_type === 'text' || parsed.input_type === 'image'
+        ? parsed.input_type
+        : fallbackInputType,
+    extracted_value: typeof parsed.extracted_value === 'string' ? parsed.extracted_value : '',
+  };
+}
+
 export function SearchPanel() {
   const [query, setQuery] = useState('');
   const [inputType, setInputType] = useState<'text' | 'url' | 'image'>('text');
@@ -69,7 +97,27 @@ export function SearchPanel() {
   const apiBaseUrl = (rawApiBaseUrl && rawApiBaseUrl.length > 0
     ? rawApiBaseUrl
     : 'https://review-lens-api.onrender.com').replace(/\/+$|\/+(?=\?)/g, '');
-  const parsedSummary = result?.summary ? parseSummary(result.summary) : null;
+
+  const safeResult = result
+    ? {
+        ...result,
+        total_posts: typeof result.total_posts === 'number' ? result.total_posts : 0,
+        positive_percent: typeof result.positive_percent === 'number' ? result.positive_percent : 0,
+        negative_percent: typeof result.negative_percent === 'number' ? result.negative_percent : 0,
+        neutral_percent: typeof result.neutral_percent === 'number' ? result.neutral_percent : 0,
+        top_positive_reviews: Array.isArray(result.top_positive_reviews) ? result.top_positive_reviews : [],
+        top_negative_reviews: Array.isArray(result.top_negative_reviews) ? result.top_negative_reviews : [],
+        summary: typeof result.summary === 'string' ? result.summary : '',
+        input_type:
+          result.input_type === 'url' || result.input_type === 'text' || result.input_type === 'image'
+            ? result.input_type
+            : 'text',
+        extracted_value: typeof result.extracted_value === 'string' ? result.extracted_value : '',
+      }
+    : null;
+  const parsedSummary = safeResult ? parseSummary(safeResult.summary) : null;
+  const topPositiveReviews = safeResult?.top_positive_reviews ?? [];
+  const topNegativeReviews = safeResult?.top_negative_reviews ?? [];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -97,8 +145,9 @@ export function SearchPanel() {
       }
 
       const data = await response.json();
-      setResult(data);
+      setResult(normalizeProductInsights(data, query.trim(), inputType));
     } catch (err) {
+      console.error('SearchPanel fetch error:', err);
       setError('Unable to fetch product reviews. Please try again with a valid product name or link.');
     } finally {
       setLoading(false);
@@ -209,16 +258,16 @@ export function SearchPanel() {
               <div className="min-w-0">
                 <p className="text-sm uppercase tracking-[0.18em] text-cyan-300">Product summary</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
-                  {result.product}
+                  {safeResult.product}
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
-                  {modeLabelMap[result.input_type]}
+                  {modeLabelMap[safeResult.input_type]}
                 </span>
-                {result.input_type === 'url' && result.extracted_value ? (
+                {safeResult.input_type === 'url' && safeResult.extracted_value ? (
                   <span className="rounded-full border border-cyan-500 bg-cyan-500/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-cyan-200">
-                    Extracted: {result.extracted_value}
+                    Extracted: {safeResult.extracted_value}
                   </span>
                 ) : null}
               </div>
@@ -257,10 +306,10 @@ export function SearchPanel() {
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Total Posts', value: result.total_posts, tone: 'text-slate-100' },
-              { label: 'Positive', value: `${result.positive_percent}%`, tone: 'text-emerald-300' },
-              { label: 'Negative', value: `${result.negative_percent}%`, tone: 'text-rose-300' },
-              { label: 'Neutral', value: `${result.neutral_percent}%`, tone: 'text-slate-300' },
+              { label: 'Total Posts', value: safeResult.total_posts, tone: 'text-slate-100' },
+              { label: 'Positive', value: `${safeResult.positive_percent}%`, tone: 'text-emerald-300' },
+              { label: 'Negative', value: `${safeResult.negative_percent}%`, tone: 'text-rose-300' },
+              { label: 'Neutral', value: `${safeResult.neutral_percent}%`, tone: 'text-slate-300' },
             ].map((stat) => (
               <div key={stat.label} className="rounded-3xl border border-slate-800 bg-slate-950 p-6">
                 <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{stat.label}</p>
@@ -272,7 +321,7 @@ export function SearchPanel() {
           <section className="rounded-3xl border border-slate-800 bg-panel p-6 shadow-xl shadow-slate-950/20">
             <h3 className="text-xl font-semibold text-slate-100">Top Positive Insights</h3>
             <ul className="mt-5 space-y-3 text-slate-300 list-inside list-disc">
-              {result.top_positive_reviews.slice(0, 10).map((review, index) => (
+              {topPositiveReviews.slice(0, 10).map((review, index) => (
                 <li key={review.id ?? index} className="max-w-full break-words leading-7">
                   {sanitizeInsight(review.text)}
                 </li>
@@ -283,7 +332,7 @@ export function SearchPanel() {
           <section className="rounded-3xl border border-slate-800 bg-panel p-6 shadow-xl shadow-slate-950/20">
             <h3 className="text-xl font-semibold text-slate-100">Top Negative Insights</h3>
             <ul className="mt-5 space-y-3 text-slate-300 list-inside list-disc">
-              {result.top_negative_reviews.slice(0, 10).map((review, index) => (
+              {topNegativeReviews.slice(0, 10).map((review, index) => (
                 <li key={review.id ?? index} className="max-w-full break-words leading-7">
                   {sanitizeInsight(review.text)}
                 </li>
