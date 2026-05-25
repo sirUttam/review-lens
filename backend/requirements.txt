@@ -3,4 +3,4 @@ uvicorn[standard]==0.22.0
 httpx==0.24.0
 pydantic==2.9.0
 python-dotenv==1.0.0
-vaderSentiment==3.4.0
+vaderSentiment==3.3.2
