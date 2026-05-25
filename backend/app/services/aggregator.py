@@ -3,8 +3,8 @@ from ..models.review import Review
 from ..processors.normalization_engine import NormalizationEngine
 from ..processors.duplicate_remover import DuplicateRemover
 from ..processors.quality_filter import ReviewQualityFilter
-from ..services.sentiment_engine import SentimentEngine
-from ..services.reddit_service import RedditService
+from ..processors.sentiment_engine import SentimentEngine
+from .reddit_service import RedditService
 
 
 class AggregatorService:
