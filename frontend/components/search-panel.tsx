@@ -65,17 +65,15 @@ export function SearchPanel() {
   const [result, setResult] = useState<ProductInsights | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const rawApiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const apiBaseUrl = (rawApiBaseUrl && rawApiBaseUrl.length > 0
+    ? rawApiBaseUrl
+    : 'https://review-lens-api.onrender.com').replace(/\/+$|\/+(?=\?)/g, '');
   const parsedSummary = result?.summary ? parseSummary(result.summary) : null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!query.trim()) {
-      return;
-    }
-    if (!apiBaseUrl) {
-      console.error('NEXT_PUBLIC_API_URL is missing');
-      setError('Unable to fetch product reviews. Please try again with a valid product name or link.');
       return;
     }
     setLoading(true);
