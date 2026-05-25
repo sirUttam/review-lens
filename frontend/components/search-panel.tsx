@@ -65,6 +65,7 @@ export function SearchPanel() {
   const [result, setResult] = useState<ProductInsights | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
   const parsedSummary = result?.summary ? parseSummary(result.summary) : null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -72,12 +73,17 @@ export function SearchPanel() {
     if (!query.trim()) {
       return;
     }
+    if (!apiBaseUrl) {
+      console.error('NEXT_PUBLIC_API_URL is missing');
+      setError('Unable to fetch product reviews. Please try again with a valid product name or link.');
+      return;
+    }
     setLoading(true);
     setError('');
     setResult(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews`, {
+      const response = await fetch(`${apiBaseUrl}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
