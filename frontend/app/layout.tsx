@@ -1,7 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Navbar } from '@/components/navbar';
+import { Navbar } from '../components/navbar';
 
 export const metadata: Metadata = {
   title: 'ReviewLens',

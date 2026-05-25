@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { ReviewItem } from '@/lib/types';
+import type { ReviewItem } from '../lib/types';
 
 interface ReviewCardProps {
   review: ReviewItem;
