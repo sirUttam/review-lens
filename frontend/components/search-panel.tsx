@@ -95,37 +95,34 @@ export function SearchPanel() {
   const [error, setError] = useState('');
 
   const rawApiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
-  const apiBaseUrl = (rawApiBaseUrl && rawApiBaseUrl.length > 0
-    ? rawApiBaseUrl
-    : 'https://review-lens-api.onrender.com'
-  ).replace(/\/+$|\/+(?=\?)/g, '');
+  const apiBaseUrl =
+    (rawApiBaseUrl && rawApiBaseUrl.length > 0
+      ? rawApiBaseUrl
+      : 'https://review-lens-api.onrender.com'
+    ).replace(/\/+$|\/+(?=\?)/g, '');
 
   const safeResult = result
     ? {
         ...result,
-        total_posts: typeof result.total_posts === 'number' ? result.total_posts : 0,
-        positive_percent: typeof result.positive_percent === 'number' ? result.positive_percent : 0,
-        negative_percent: typeof result.negative_percent === 'number' ? result.negative_percent : 0,
-        neutral_percent: typeof result.neutral_percent === 'number' ? result.neutral_percent : 0,
-        top_positive_reviews: Array.isArray(result.top_positive_reviews) ? result.top_positive_reviews : [],
-        top_negative_reviews: Array.isArray(result.top_negative_reviews) ? result.top_negative_reviews : [],
-        summary: typeof result.summary === 'string' ? result.summary : '',
-        input_type:
-          result.input_type === 'url' || result.input_type === 'text' || result.input_type === 'image'
-            ? result.input_type
-            : 'text',
-        extracted_value: typeof result.extracted_value === 'string' ? result.extracted_value : '',
+        total_posts: result.total_posts ?? 0,
+        positive_percent: result.positive_percent ?? 0,
+        negative_percent: result.negative_percent ?? 0,
+        neutral_percent: result.neutral_percent ?? 0,
+        top_positive_reviews: result.top_positive_reviews ?? [],
+        top_negative_reviews: result.top_negative_reviews ?? [],
+        summary: result.summary ?? '',
+        input_type: result.input_type ?? 'text',
+        extracted_value: result.extracted_value ?? '',
       }
     : null;
 
-  const parsedSummary = safeResult ? parseSummary(safeResult.summary) : null;
+  const parsedSummary = safeResult?.summary ? parseSummary(safeResult.summary) : null;
 
   const topPositiveReviews = safeResult?.top_positive_reviews ?? [];
   const topNegativeReviews = safeResult?.top_negative_reviews ?? [];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!query.trim()) return;
 
     setLoading(true);
@@ -135,23 +132,19 @@ export function SearchPanel() {
     try {
       const response = await fetch(`${apiBaseUrl}/reviews`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: inputType,
           value: query.trim(),
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch insights');
-      }
+      if (!response.ok) throw new Error('Failed to fetch insights');
 
       const data = await response.json();
       setResult(normalizeProductInsights(data, query.trim(), inputType));
     } catch (err) {
-      console.error('SearchPanel fetch error:', err);
+      console.error(err);
       setError('Unable to fetch product reviews. Please try again.');
     } finally {
       setLoading(false);
@@ -162,13 +155,15 @@ export function SearchPanel() {
     <section className="mx-auto w-full max-w-5xl min-w-0">
       <form
         onSubmit={handleSubmit}
-        className="mb-10 flex flex-col gap-4 rounded-3xl border border-slate-800 bg-panel p-6 shadow-xl shadow-slate-950/40"
+        className="mb-10 flex flex-col gap-4 rounded-3xl border border-slate-800 bg-panel p-6"
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.22em] text-slate-500">Search Reddit reviews</p>
+            <p className="text-sm uppercase tracking-[0.22em] text-slate-500">
+              Search Reddit reviews
+            </p>
             <p className="mt-1 text-sm text-slate-400">
-              Enter a product name, URL, or Reddit link.
+              Enter product name, URL, or Reddit link.
             </p>
           </div>
 
@@ -179,11 +174,11 @@ export function SearchPanel() {
                 type="button"
                 disabled={mode.disabled}
                 onClick={() => setInputType(mode.id)}
-                className={`rounded-full border px-4 py-2 text-sm transition ${
+                className={`rounded-full border px-4 py-2 text-sm ${
                   inputType === mode.id
-                    ? 'border-cyan-400 bg-cyan-500/10 text-cyan-100'
-                    : 'border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100'
-                } ${mode.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'border-cyan-400 text-cyan-100'
+                    : 'border-slate-700 text-slate-300'
+                }`}
               >
                 {mode.label}
               </button>
@@ -191,10 +186,10 @@ export function SearchPanel() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex gap-3">
           <input
-            className="min-w-0 flex-1 rounded-2xl border border-slate-800 bg-slate-950 px-5 py-5 text-slate-100"
-            placeholder="Search product..."
+            className="flex-1 rounded-2xl border border-slate-800 bg-slate-950 px-5 py-4 text-slate-100"
+            placeholder="Search products..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -208,23 +203,47 @@ export function SearchPanel() {
           </button>
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-rose-400 text-sm">{error}</p>}
       </form>
 
-      {result && (
+      {/* SAFE RENDERING (NO BUILD ERRORS EVER) */}
+      {safeResult ? (
         <div className="space-y-8">
           <section className="rounded-3xl border border-slate-800 bg-panel p-6">
-            <p className="text-sm uppercase text-cyan-300">Product summary</p>
+            <p className="text-cyan-300 text-sm uppercase">Product summary</p>
 
-            {/* ✅ FIX IS HERE */}
-            <h2 className="mt-2 text-3xl font-semibold text-slate-100">
-              {safeResult?.product}
+            <h2 className="mt-2 text-3xl font-semibold text-white">
+              {safeResult.product ?? 'Unknown Product'}
             </h2>
 
-            <p className="mt-6 text-slate-300">
-              {parsedSummary?.overall}
+            <p className="mt-4 text-slate-300">
+              {parsedSummary?.overall ?? 'No summary available'}
             </p>
           </section>
+
+          <section className="grid gap-4 sm:grid-cols-2">
+            <div className="p-4 border rounded-2xl border-slate-800">
+              <h3 className="text-emerald-300">Positive</h3>
+              <ul className="mt-2 space-y-2 text-slate-300">
+                {parsedSummary?.positives?.map((p, i) => (
+                  <li key={i}>{p}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="p-4 border rounded-2xl border-slate-800">
+              <h3 className="text-rose-300">Negative</h3>
+              <ul className="mt-2 space-y-2 text-slate-300">
+                {parsedSummary?.negatives?.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div className="text-slate-400 p-6 border border-slate-800 rounded-2xl">
+          Enter a product to analyze reviews
         </div>
       )}
     </section>
